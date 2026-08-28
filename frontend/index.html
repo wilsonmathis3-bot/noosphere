@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noosphere</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0a0a0f;color:#f4f4f5;min-height:100vh}
+.header{position:sticky;top:0;z-index:100;background:rgba(10,10,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid #1a1a2e;padding:20px 24px}
+.header-inner{max-width:720px;margin:0 auto}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;color:#f4f4f5;letter-spacing:-0.02em;cursor:pointer;display:inline-block}
+.logo:hover{color:#a78bfa}
+.tagline{font-size:0.85rem;color:#71717a;margin-top:2px;font-weight:400}
+.fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;background:#7c3aed;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(124,58,237,0.4);transition:transform .2s,box-shadow .2s;z-index:200}
+.fab:hover{transform:scale(1.08);box-shadow:0 6px 32px rgba(124,58,237,0.5)}
+.main{max-width:720px;margin:0 auto;padding:24px}
+.feed{display:flex;flex-direction:column;gap:16px}
+.card{background:#13131f;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s}
+.card:hover{border-color:#2e2e4a;transform:translateY(-1px)}
+.card-image{width:100%;height:220px;overflow:hidden;background:#0d0d16}
+.card-image img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.card:hover .card-image img{transform:scale(1.02)}
+.card-body{padding:20px}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:600;color:#f4f4f5;line-height:1.35;margin-bottom:8px}
+.card-preview{font-size:0.9rem;color:#a1a1aa;line-height:1.6;margin-bottom:14px}
+.card-meta{display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#52525b}
+.meta-author{color:#a78bfa;font-weight:500}
+.meta-dot{color:#3f3f46}
+.empty{text-align:center;padding:80px 20px;color:#52525b}
+.empty-icon{font-size:4rem;margin-bottom:16px;opacity:.7}
+.empty h2{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;color:#d4d4d8;margin-bottom:8px}
+.submit-page,.detail-page{animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:none;color:#a78bfa;font-size:0.9rem;cursor:pointer;padding:8px 0;margin-bottom:16px}
+.back-btn:hover{color:#c4b5fd}
+.page-title{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;color:#f4f4f5;margin-bottom:24px}
+.form{display:flex;flex-direction:column;gap:20px}
+.field label{display:block;font-size:0.85rem;font-weight:500;color:#a1a1aa;margin-bottom:6px}
+.field input[type="text"],.field textarea{width:100%;background:#13131f;border:1px solid #27272a;border-radius:10px;padding:12px 14px;color:#f4f4f5;font-size:0.95rem;outline:none;transition:border-color .2s;font-family:inherit}
+.field input:focus,.field textarea:focus{border-color:#7c3aed}
+.field textarea{resize:vertical;min-height:120px;line-height:1.6}
+.image-btn{display:inline-flex;align-items:center;gap:8px;background:#1a1a2e;border:1px dashed #3f3f46;border-radius:10px;padding:12px 18px;color:#a1a1aa;font-size:0.9rem;cursor:pointer;transition:border-color .2s,color .2s}
+.image-btn:hover{border-color:#7c3aed;color:#c4b5fd}
+.image-preview{margin-top:12px;max-width:100%;max-height:300px;border-radius:10px;border:1px solid #27272a}
+.form-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:8px}
+.btn-primary,.btn-secondary{padding:12px 24px;border-radius:10px;font-size:0.95rem;font-weight:500;cursor:pointer;transition:opacity .2s;border:none}
+.btn-primary{background:#7c3aed;color:#fff}
+.btn-primary:hover:not(:disabled){opacity:.9}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:#27272a;color:#a1a1aa}
+.btn-secondary:hover{background:#3f3f46}
+.detail-card{background:#13131f;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden}
+.detail-image{width:100%;max-height:400px;overflow:hidden;background:#0d0d16}
+.detail-image img{width:100%;height:auto;display:block}
+.detail-body{padding:28px}
+.detail-title{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700;color:#f4f4f5;line-height:1.3;margin-bottom:12px}
+.detail-meta{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:#52525b;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #1e1e2e}
+.detail-content{font-size:1rem;color:#d4d4d8;line-height:1.8;white-space:pre-wrap}
+.center{display:flex;justify-content:center;padding:80px}
+.spinner{width:32px;height:32px;border:2px solid #27272a;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:640px){.header{padding:16px}.main{padding:16px}.card-body{padding:16px}.detail-body{padding:20px}.fab{bottom:20px;right:20px;width:52px;height:52px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const API = '';
+
+function timeAgo(d) {
+  const now = new Date(), diff = Math.floor((now - new Date(d)) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+let thoughts = [], view = 'feed', selected = null, loading = true;
+
+const app = document.getElementById('app');
+
+function render() {
+  if (view === 'feed') renderFeed();
+  else if (view === 'submit') renderSubmit();
+  else if (view === 'detail') renderDetail();
+}
+
+function renderFeed() {
+  let html = `
+    <header class="header"><div class="header-inner">
+      <h1 class="logo" onclick="showFeed()">Noosphere</h1>
+      <p class="tagline">A space for thought experiments</p>
+    </div></header>
+    <main class="main">
+      <button class="fab" onclick="showSubmit()" title="Share a thought">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>`;
+
+  if (loading) {
+    html += '<div class="center"><div class="spinner"></div></div>';
+  } else if (thoughts.length === 0) {
+    html += `<div class="empty"><div class="empty-icon">🌌</div><h2>No thoughts yet</h2><p>Be the first to share a thought experiment.</p></div>`;
+  } else {
+    html += '<div class="feed">';
+    for (const t of thoughts) {
+      const img = t.image_url ? `<div class="card-image"><img src="${API}${t.image_url}" alt="${esc(t.title)}" loading="lazy"></div>` : '';
+      html += `
+        <article class="card" onclick="showDetail(${t.id})">
+          ${img}
+          <div class="card-body">
+            <h3 class="card-title">${esc(t.title)}</h3>
+            <p class="card-preview">${esc(t.content.slice(0, 180))}${t.content.length > 180 ? '...' : ''}</p>
+            <div class="card-meta">
+              <span class="meta-author">${esc(t.author)}</span>
+              <span class="meta-dot">·</span>
+              <span class="meta-time">${timeAgo(t.created_at)}</span>
+            </div>
+          </div>
+        </article>`;
+    }
+    html += '</div>';
+  }
+  html += '</main>';
+  app.innerHTML = html;
+}
+
+function renderSubmit() {
+  app.innerHTML = `
+    <header class="header"><div class="header-inner">
+      <h1 class="logo" onclick="showFeed()">Noosphere</h1>
+      <p class="tagline">A space for thought experiments</p>
+    </div></header>
+    <main class="main">
+      <div class="submit-page">
+        <button class="back-btn" onclick="showFeed()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back
+        </button>
+        <h2 class="page-title">Share a Thought Experiment</h2>
+        <form class="form" onsubmit="handleSubmit(event)">
+          <div class="field"><label>Title</label><input type="text" id="title" placeholder="e.g. What if consciousness is a fundamental force?" required maxlength="200"></div>
+          <div class="field"><label>Your Idea</label><textarea id="content" placeholder="Describe your thought experiment, hypothesis, or idea..." required rows="8"></textarea></div>
+          <div class="field"><label>Author (optional)</label><input type="text" id="author" placeholder="Anonymous" maxlength="100"></div>
+          <div class="field"><label>Visual (optional)</label>
+            <input type="file" id="imageFile" accept="image/*" style="display:none" onchange="handleImage(event)">
+            <button type="button" class="image-btn" onclick="document.getElementById('imageFile').click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="imgLabel">Choose an image</span>
+            </button>
+            <img id="imgPreview" class="image-preview" style="display:none">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="showFeed()">Cancel</button>
+            <button type="submit" class="btn-primary" id="submitBtn">Share Thought</button>
+          </div>
+        </form>
+      </div>
+    </main>`;
+}
+
+function renderDetail() {
+  const t = selected;
+  const img = t.image_url ? `<div class="detail-image"><img src="${API}${t.image_url}" alt="${esc(t.title)}"></div>` : '';
+  app.innerHTML = `
+    <header class="header"><div class="header-inner">
+      <h1 class="logo" onclick="showFeed()">Noosphere</h1>
+      <p class="tagline">A space for thought experiments</p>
+    </div></header>
+    <main class="main">
+      <div class="detail-page">
+        <button class="back-btn" onclick="showFeed()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to feed
+        </button>
+        <article class="detail-card">
+          ${img}
+          <div class="detail-body">
+            <h1 class="detail-title">${esc(t.title)}</h1>
+            <div class="detail-meta">
+              <span class="meta-author">${esc(t.author)}</span>
+              <span class="meta-dot">·</span>
+              <span class="meta-time">${timeAgo(t.created_at)}</span>
+            </div>
+            <div class="detail-content">${esc(t.content)}</div>
+          </div>
+        </article>
+      </div>
+    </main>`;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+let selectedImage = null;
+function handleImage(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  selectedImage = f;
+  document.getElementById('imgLabel').textContent = f.name;
+  const reader = new FileReader();
+  reader.onload = ev => { document.getElementById('imgPreview').src = ev.target.result; document.getElementById('imgPreview').style.display = 'block'; };
+  reader.readAsDataURL(f);
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  const title = document.getElementById('title').value.trim();
+  const content = document.getElementById('content').value.trim();
+  const author = document.getElementById('author').value.trim();
+  if (!title || !content) return;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Posting...';
+
+  const form = new FormData();
+  form.append('title', title);
+  form.append('content', content);
+  form.append('author', author || 'Anonymous');
+  if (selectedImage) form.append('image', selectedImage);
+
+  try {
+    await fetch(`${API}/thoughts`, { method: 'POST', body: form });
+    selectedImage = null;
+    await loadThoughts();
+    showFeed();
+  } catch (err) {
+    alert('Failed to post. Try again.');
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').textContent = 'Share Thought';
+  }
+}
+
+function showFeed() { view = 'feed'; selected = null; render(); }
+function showSubmit() { view = 'submit'; selectedImage = null; render(); }
+function showDetail(id) { selected = thoughts.find(t => t.id === id); if (selected) { view = 'detail'; render(); } }
+
+async function loadThoughts() {
+  loading = true; render();
+  try {
+    const res = await fetch(`${API}/thoughts`);
+    thoughts = await res.json();
+  } catch (e) { console.error(e); }
+  loading = false; render();
+}
+
+loadThoughts();
+</script>
+</body>
+</html>
