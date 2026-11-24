@@ -9,3 +9,4 @@ node_modules/
 *.db
 uploads/*
 !uploads/.gitkeep
+.pytest_cache/

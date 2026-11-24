@@ -221,12 +221,17 @@ async function handleSubmit(e) {
   if (selectedImage) form.append('image', selectedImage);
 
   try {
-    await fetch(`${API}/thoughts`, { method: 'POST', body: form });
+    const res = await fetch(`${API}/thoughts`, { method: 'POST', body: form });
+    if (!res.ok) {
+      let msg = `Failed to post (HTTP ${res.status}).`;
+      try { const body = await res.json(); if (body && body.detail) msg = `Failed to post: ${body.detail}`; } catch (_) {}
+      throw new Error(msg);
+    }
     selectedImage = null;
     await loadThoughts();
     showFeed();
   } catch (err) {
-    alert('Failed to post. Try again.');
+    alert(err && err.message ? err.message : 'Failed to post. Try again.');
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('submitBtn').textContent = 'Share Thought';
   }
@@ -240,6 +245,7 @@ async function loadThoughts() {
   loading = true; render();
   try {
     const res = await fetch(`${API}/thoughts`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     thoughts = await res.json();
   } catch (e) { console.error(e); }
   loading = false; render();

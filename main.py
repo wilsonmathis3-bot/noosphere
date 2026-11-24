@@ -5,12 +5,12 @@ FastAPI backend with embedded frontend
 
 import os
 import uuid
-import shutil
+import secrets
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, Header, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,11 +21,22 @@ from sqlalchemy.orm import sessionmaker, Session
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "uploads"))
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-DB_PATH = BASE_DIR / "thoughts.db"
+# Override with DATABASE_PATH (e.g. a Railway volume) so posts survive redeploys.
+DB_PATH = Path(os.getenv("DATABASE_PATH", BASE_DIR / "thoughts.db"))
 DATABASE_URL = f"sqlite:///{DB_PATH}"
+
+MAX_TITLE_LEN = 200
+MAX_AUTHOR_LEN = 100
+MAX_CONTENT_LEN = 20_000
+MAX_PAGE_SIZE = 100
+MAX_UPLOAD_BYTES = int(float(os.getenv("MAX_UPLOAD_MB", "5")) * 1024 * 1024)
+ALLOWED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+# Deleting posts is disabled unless ADMIN_TOKEN is set; callers must then send
+# it in the X-Admin-Token header. (Previously anyone could delete any post.)
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 # ─── Database ────────────────────────────────────────────────────────────────
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -72,7 +83,9 @@ app = FastAPI(title="Noosphere", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # Browsers reject credentialed requests with a wildcard origin, and the
+    # API uses no cookies, so credentials stay off.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -97,23 +110,41 @@ async def create_thought(
     author: Optional[str] = Form("Anonymous"),
     image: Optional[UploadFile] = File(None),
 ):
+    title = title.strip()
+    content = content.strip()
+    author = (author or "").strip() or "Anonymous"
+    if not title or not content:
+        raise HTTPException(400, "Title and content are required")
+    if len(title) > MAX_TITLE_LEN:
+        raise HTTPException(400, f"Title must be at most {MAX_TITLE_LEN} characters")
+    if len(author) > MAX_AUTHOR_LEN:
+        raise HTTPException(400, f"Author must be at most {MAX_AUTHOR_LEN} characters")
+    if len(content) > MAX_CONTENT_LEN:
+        raise HTTPException(400, f"Content must be at most {MAX_CONTENT_LEN} characters")
+
     db = SessionLocal()
+    file_path = None
     try:
         image_path = None
         if image and image.filename:
             ext = Path(image.filename).suffix.lower()
-            if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp"):
+            if ext not in ALLOWED_IMAGE_EXTS:
                 raise HTTPException(400, "Invalid image format")
             filename = f"{uuid.uuid4().hex}{ext}"
             file_path = UPLOAD_DIR / filename
+            written = 0
             with file_path.open("wb") as f:
-                shutil.copyfileobj(image.file, f)
+                while chunk := image.file.read(1024 * 1024):
+                    written += len(chunk)
+                    if written > MAX_UPLOAD_BYTES:
+                        raise HTTPException(413, f"Image larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
+                    f.write(chunk)
             image_path = f"/uploads/{filename}"
 
         thought = ThoughtDB(
             title=title,
             content=content,
-            author=author or "Anonymous",
+            author=author,
             image_path=image_path,
         )
         db.add(thought)
@@ -128,12 +159,19 @@ async def create_thought(
             image_url=thought.image_path,
             created_at=thought.created_at,
         )
+    except BaseException:
+        # Don't leave half-written or orphaned uploads behind on failure.
+        if file_path is not None:
+            file_path.unlink(missing_ok=True)
+        raise
     finally:
         db.close()
 
 
 @app.get("/thoughts", response_model=List[ThoughtOut])
 async def list_thoughts(skip: int = 0, limit: int = 50):
+    skip = max(skip, 0)
+    limit = min(max(limit, 1), MAX_PAGE_SIZE)
     db = SessionLocal()
     try:
         thoughts = (
@@ -178,14 +216,21 @@ async def get_thought(thought_id: int):
 
 
 @app.delete("/thoughts/{thought_id}")
-async def delete_thought(thought_id: int):
+async def delete_thought(thought_id: int, x_admin_token: Optional[str] = Header(None)):
+    if not ADMIN_TOKEN:
+        raise HTTPException(403, "Deleting is disabled (set ADMIN_TOKEN to enable it)")
+    if not x_admin_token or not secrets.compare_digest(x_admin_token, ADMIN_TOKEN):
+        raise HTTPException(401, "Missing or invalid X-Admin-Token")
     db = SessionLocal()
     try:
         thought = db.query(ThoughtDB).filter(ThoughtDB.id == thought_id).first()
         if not thought:
             raise HTTPException(404, "Thought not found")
+        image_path = thought.image_path
         db.delete(thought)
         db.commit()
+        if image_path:
+            (UPLOAD_DIR / Path(image_path).name).unlink(missing_ok=True)
         return {"deleted": True}
     finally:
         db.close()
